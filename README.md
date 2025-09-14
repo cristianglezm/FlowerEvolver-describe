@@ -1,6 +1,6 @@
-
-
 # FlowerEvolver-describe Microservice
+
+[![CI](https://github.com/cristianglezm/FlowerEvolver-describe/actions/workflows/ci.yml/badge.svg)](https://github.com/cristianglezm/FlowerEvolver-describe/actions/workflows/ci.yml)[![CD - Build & Push Docker Image](https://github.com/cristianglezm/FlowerEvolver-describe/actions/workflows/docker.yml/badge.svg?branch=master)](https://github.com/cristianglezm/FlowerEvolver-describe/actions/workflows/docker.yml)
 
 A FastAPI microservice that generates textual descriptions for images of flowers using pre-trained ONNX models. It can serve requests via a REST API and, optionally, process them asynchronously through Kafka.
 
