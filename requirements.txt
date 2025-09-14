@@ -21,4 +21,4 @@ pydantic-settings==2.10.1
 cachetools==6.2.0
 redis==6.4.0
 fastapi-limiter==0.1.6
-prometheus-client==0.20.0
+prometheus-client==0.22.1
