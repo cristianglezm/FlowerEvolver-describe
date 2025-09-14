@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 10s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: 'flowerevolver-describe'
+    scheme: http
+    static_configs:
+      # service name and port defined in docker-compose.yml
+      - targets: ['app:8000']
+    authorization:
+      credentials: "sk_change_key"
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka_exporter:9308']

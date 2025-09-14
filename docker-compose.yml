@@ -1,0 +1,139 @@
+services:
+  app:
+    build: .
+    image: "cristianglezm/fe:describe"
+    hostname: app
+    container_name: app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./models:/home/fe/app/models
+      - metrics_data:/home/fe/app/metrics
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    networks:
+      - internal
+
+  redis:
+    image: "redis:7-alpine"
+    hostname: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - internal
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.76.0-alpine
+    hostname: redis_exporter
+    container_name: redis_exporter
+    ports:
+     - "9121:9121"
+    environment:
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      - redis
+    networks:
+      - internal
+
+  kafka:
+    image: 'bitnami/kafka:3.7.1'
+    hostname: kafka
+    container_name: kafka
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+      - '29092:29092'
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=INTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,EXTERNAL://0.0.0.0:29092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=INTERNAL
+      # logs
+      - KAFKA_LOG4J_LOGGERS="kafka.controller=INFO,kafka.producer.async.DefaultEventHandler=INFO,state.change.logger=INFO"
+    networks:
+      - internal
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1"
+        ]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
+
+  kafka_exporter:
+    image: "danielqsj/kafka-exporter:v1.9.0"
+    hostname: kafka_exporter
+    container_name: kafka_exporter
+    ports:
+     - "9308:9308"
+    restart: always
+    environment:
+      - KAFKA_SERVER=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - internal
+
+  prometheus:
+    image: "prom/prometheus:v3.5.0"
+    hostname: prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus/alert_rules.yml:/etc/prometheus/alert_rules.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      - app
+    networks:
+      - internal
+
+  grafana:
+    image: "grafana/grafana:12.2.0-17630182352"
+    hostname: grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./docker/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - internal
+
+volumes:
+  metrics_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  internal:
+    name: internal
+    driver: bridge
