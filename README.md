@@ -17,7 +17,7 @@ The architecture promotes an **asynchronous-first workflow**. For computationall
 
 The image captioning model is a `ViT-GPT2` architecture optimized for ONNX Runtime. The models are hosted on the [cristianglezm/ViT-GPT2-FlowerCaptioner-ONNX](https://huggingface.co/cristianglezm/ViT-GPT2-FlowerCaptioner-ONNX) Hugging Face repository.
 
-The training dataset was custom-built using images generated from [FlowerEvolver](https://github.com/FlowerEvolver-frontend) desktop app. It consists of 500 images, each with a description generated from a basic template. This specialized dataset allows the model to produce descriptions tailored to the unique visual characteristics of the generated flowers.
+The training [dataset](https://huggingface.co/datasets/cristianglezm/FlowerEvolver-Dataset) was custom-built using images generated from [FlowerEvolver](https://github.com/cristianglezm/FlowerEvolver-frontend) desktop app. It consists of 500 images, each with a description generated from a basic template and curated. This specialized dataset allows the model to produce descriptions tailored to the unique visual characteristics of the generated flowers.
 
 ## Features
 
