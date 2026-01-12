@@ -11,7 +11,7 @@ huggingface-hub==1.2.3
 uvicorn==0.40.0
 gunicorn==23.0.0
 httptools==0.7.1
-websockets==15.0.1
+websockets==16.0
 watchfiles==1.1.1
 pytest==9.0.2
 flake8==7.3.0
