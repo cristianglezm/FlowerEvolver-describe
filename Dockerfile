@@ -1,5 +1,5 @@
 # Stage 1: download model and dependency installation
-FROM python:3.10-slim AS builder
+FROM python:3.11-slim AS builder
 RUN useradd --create-home fe
 USER fe
 WORKDIR /home/fe/app
@@ -12,7 +12,7 @@ COPY --chown=fe:fe download_models.py .
 RUN python download_models.py
 
 # Stage 2: Final runtime stage
-FROM python:3.10-slim
+FROM python:3.11-slim
 RUN useradd --create-home fe
 #RUN apt-get update && apt-get install -y netcat-openbsd && rm -rf /var/lib/apt/lists/*
 USER fe
