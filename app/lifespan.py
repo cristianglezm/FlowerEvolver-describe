@@ -7,7 +7,8 @@ import structlog
 from fastapi import FastAPI
 from aiokafka import AIOKafkaProducer
 from redis.asyncio import Redis
-from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+
 
 from .config import settings
 from .background.kafka_consumer import consume_kafka_requests
@@ -55,7 +56,7 @@ async def _startup():
         logger.info("redis_enabled_initializing_rate_limiter")
         try:
             state.redis_client = Redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
-            await FastAPILimiter.init(state.redis_client)
+            await RateLimiter.init(state.redis_client)
             logger.info("fastapi_limiter_initialized_successfully")
         except Exception as e:
             logger.error("fastapi_limiter_initialization_failed", error=str(e), exc_info=True)

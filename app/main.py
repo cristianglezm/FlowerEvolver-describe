@@ -26,7 +26,7 @@ logger = structlog.get_logger(__name__)
 app = FastAPI(
     title="FlowerEvolver-describe Microservice",
     description="An API that generates descriptions for flower images.",
-    version="2.0.0",
+    version="2.0.1",
     lifespan=lifespan
 )
 
