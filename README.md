@@ -28,7 +28,7 @@ The training [dataset](https://huggingface.co/datasets/cristianglezm/FlowerEvolv
     -   **Grafana Dashboards**: Pre-configured with a Prometheus datasource and dashboards for visualizing application and system health.
     -   **Health Checks**: Provides `/healthz` (liveness), `/readyz` (readiness), and `/health` (deep dependency check) endpoints.
 -   **Containerized & Orchestrated**:
-    -   A multi-stage `Dockerfile` creates a lightweight, secure production image running on Python 3.10.
+    -   A multi-stage `Dockerfile` creates a lightweight, secure production image running on Python 3.11.
     -   A `docker-compose.yml` file orchestrates the entire stack: the app, Redis, Kafka, Prometheus, and Grafana.
 -   **Robust API & Performance**:
     -   **Asynchronous & Synchronous Processing**: Supports both Kafka and direct REST API workflows.
@@ -69,7 +69,7 @@ The training [dataset](https://huggingface.co/datasets/cristianglezm/FlowerEvolv
 ## Getting Started
 
 ### Prerequisites
-- Python 3.10+
+- Python 3.11+
 - Docker
 - Docker Compose
 
