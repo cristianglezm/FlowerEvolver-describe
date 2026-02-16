@@ -18,7 +18,7 @@ flake8==7.3.0
 autopep8==2.3.2
 httpx==0.28.1
 pydantic-settings==2.13.0
-cachetools==7.0.0
+cachetools==7.0.1
 redis==7.2.0
 fastapi-limiter==0.2.0
 prometheus-client==0.24.1
