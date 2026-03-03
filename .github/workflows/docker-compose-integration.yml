@@ -1,0 +1,129 @@
+name: CI - Docker Compose Integration Tests
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CD - Build & Push Docker Image"]
+    types: [completed]
+    branches: [master]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    # Only run if CD workflow succeeded (when triggered via workflow_run)
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install aiokafka
+
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          METRICS_API_KEY=test_integration_key
+          EOF
+
+      - name: Start docker-compose services
+        run: |
+          docker-compose up -d
+          echo "Waiting for services to be healthy..."
+          sleep 30
+
+      - name: Check service health
+        run: |
+          echo "Checking Kafka health..."
+          docker-compose exec -T kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1
+          
+          echo "Checking Redis health..."
+          docker-compose exec -T redis redis-cli ping || exit 1
+          
+          echo "Checking app service logs..."
+          docker-compose logs app | head -50
+
+      - name: Run Kafka integration test
+        run: |
+          echo "Running Kafka tester..."
+          python kafka_tester.py
+          if [ $? -eq 0 ]; then
+            echo "✅ Kafka integration test passed!"
+          else
+            echo "❌ Kafka integration test failed!"
+            docker-compose logs
+            exit 1
+          fi
+
+      - name: Run pytest on running system
+        run: |
+          echo "Running pytest with docker-compose services..."
+          python -m pytest -v --tb=short
+          if [ $? -eq 0 ]; then
+            echo "✅ All pytest tests passed!"
+          else
+            echo "❌ Pytest tests failed!"
+            docker-compose logs
+            exit 1
+          fi
+
+      - name: Verify Prometheus metrics
+        run: |
+          echo "Checking Prometheus health..."
+          PROMETHEUS_URL="http://localhost:9090"
+          
+          # Wait for Prometheus to be ready
+          for i in {1..30}; do
+            if curl -s "$PROMETHEUS_URL/-/healthy" > /dev/null; then
+              echo "✅ Prometheus is healthy"
+              break
+            fi
+            echo "Waiting for Prometheus... ($i/30)"
+            sleep 2
+          done
+          
+          # Query some metrics
+          echo "Verifying metrics are being collected..."
+          METRICS=$(curl -s "$PROMETHEUS_URL/api/v1/query?query=up")
+          if echo "$METRICS" | grep -q "success"; then
+            echo "✅ Prometheus metrics collection verified!"
+          else
+            echo "⚠️  Warning: Could not verify metrics, but continuing..."
+          fi
+
+      - name: Check Grafana availability
+        run: |
+          echo "Checking Grafana availability..."
+          for i in {1..20}; do
+            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health | grep -q "200"; then
+              echo "✅ Grafana is available"
+              break
+            fi
+            echo "Waiting for Grafana... ($i/20)"
+            sleep 2
+          done
+
+      - name: Collect logs on failure
+        if: failure()
+        run: |
+          echo "=== Docker Compose Logs ===" 
+          docker-compose logs --tail=100
+          echo "=== Docker Compose Status ===" 
+          docker-compose ps
+          echo "=== Network Inspection ===" 
+          docker network inspect $(docker-compose ps -q | head -1 | xargs docker inspect --format='{{.HostConfig.NetworkMode}}') || true
+
+      - name: Cleanup docker-compose
+        if: always()
+        run: |
+          echo "Cleaning up docker-compose services..."
+          docker-compose down -v
+          echo "Cleanup complete"
