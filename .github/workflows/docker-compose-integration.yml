@@ -105,7 +105,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "[OK] Running Kafka tester..."
-          if python kafka_test.py; then
+          if python kafka_tester.py; then
             echo "[OK] Kafka integration test passed"
           else
             echo "[FAIL] Kafka integration test failed"
