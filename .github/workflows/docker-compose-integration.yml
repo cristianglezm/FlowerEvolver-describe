@@ -5,125 +5,178 @@ on:
   workflow_run:
     workflows: ["CD - Build & Push Docker Image"]
     types: [completed]
-    branches: [master]
 
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
-    # Only run if CD workflow succeeded (when triggered via workflow_run)
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
-    
+    timeout-minutes: 30
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install aiokafka
+          pip install aiokafka pytest
 
-      - name: Create .env file
+      - name: Prepare Configuration
         run: |
-          cat > .env << EOF
+          set -euo pipefail
+          
+          # Create .env file for configuration
+          cat > .env <<EOF
+          ENCODER_MODEL_PATH="models/onnx/encoder_model_quantized.onnx"
+          DECODER_MODEL_PATH="models/onnx/decoder_model_merged_quantized.onnx"
+          ONNX_PROVIDERS="CPUExecutionProvider"
+          ORIGINS="*"
+          
+          # Enable Infrastructure
+          KAFKA_ENABLED=true
+          REDIS_ENABLED=true
+          
+          # Internal Container Networking
+          KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+          REDIS_URL=redis://redis:6379
           METRICS_API_KEY=test_integration_key
           EOF
+          echo ".env file created."
 
-      - name: Start docker-compose services
+      - name: Start services
         run: |
-          docker-compose up -d
-          echo "Waiting for services to be healthy..."
-          sleep 30
+          set -euo pipefail
+          
+          echo "Pulling latest images..."
+          docker compose pull
+          
+          echo "Starting services..."
+          docker compose up -d --remove-orphans
+          
+          echo "Waiting 10s for initial stabilization..."
+          sleep 10
 
-      - name: Check service health
+      - name: Wait for External Ports
+        timeout-minutes: 5
         run: |
-          echo "Checking Kafka health..."
-          docker-compose exec -T kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1
+          set -euo pipefail
+          echo "Waiting for Kafka (localhost:29092)..."
+          for i in {1..30}; do
+            if nc -z localhost 29092; then
+              echo "[OK] Kafka is listening on 29092"
+              break
+            fi
+            echo "Waiting for Kafka port... ($i/30)"
+            sleep 2
+          done
+
+      - name: Check Service Health
+        run: |
+          set -euo pipefail
           
-          echo "Checking Redis health..."
-          docker-compose exec -T redis redis-cli ping || exit 1
-          
-          echo "Checking app service logs..."
-          docker-compose logs app | head -50
+          # 1. Check if App container crashed
+          if [ "$(docker inspect -f '{{.State.Running}}' app)" != "true" ]; then
+             echo "[FAIL] App container is not running!"
+             docker compose logs app
+             exit 1
+          fi
+
+          # 2. Check Internal Kafka
+          echo "Checking Internal Kafka..."
+          docker compose exec -T kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+          # 3. Check Internal Redis
+          echo "Checking Internal Redis..."
+          docker compose exec -T redis redis-cli ping
+
+          echo "Checking app service logs (tail 50 lines)..."
+          docker compose logs --no-color app | tail -n 50 || true
 
       - name: Run Kafka integration test
         run: |
-          echo "Running Kafka tester..."
-          python kafka_tester.py
-          if [ $? -eq 0 ]; then
-            echo "✅ Kafka integration test passed!"
+          set -euo pipefail
+          echo "[OK] Running Kafka tester..."
+          if python kafka_test.py; then
+            echo "[OK] Kafka integration test passed"
           else
-            echo "❌ Kafka integration test failed!"
-            docker-compose logs
+            echo "[FAIL] Kafka integration test failed"
             exit 1
           fi
 
-      - name: Run pytest on running system
+      - name: Run pytest
         run: |
-          echo "Running pytest with docker-compose services..."
-          python -m pytest -v --tb=short
-          if [ $? -eq 0 ]; then
-            echo "✅ All pytest tests passed!"
+          set -euo pipefail
+          echo "[OK] Running pytest..."
+          if python -m pytest -v --tb=short; then
+            echo "[OK] All pytest tests passed"
           else
-            echo "❌ Pytest tests failed!"
-            docker-compose logs
+            echo "[FAIL] Pytest tests failed"
             exit 1
           fi
 
       - name: Verify Prometheus metrics
         run: |
-          echo "Checking Prometheus health..."
+          set -euo pipefail
           PROMETHEUS_URL="http://localhost:9090"
           
-          # Wait for Prometheus to be ready
-          for i in {1..30}; do
-            if curl -s "$PROMETHEUS_URL/-/healthy" > /dev/null; then
-              echo "✅ Prometheus is healthy"
-              break
-            fi
-            echo "Waiting for Prometheus... ($i/30)"
-            sleep 2
-          done
-          
-          # Query some metrics
-          echo "Verifying metrics are being collected..."
-          METRICS=$(curl -s "$PROMETHEUS_URL/api/v1/query?query=up")
-          if echo "$METRICS" | grep -q "success"; then
-            echo "✅ Prometheus metrics collection verified!"
+          echo "Checking Prometheus health..."
+          if curl -sSf "$PROMETHEUS_URL/-/healthy" >/dev/null; then
+             echo "[OK] Prometheus is healthy"
           else
-            echo "⚠️  Warning: Could not verify metrics, but continuing..."
+             echo "[WARN] Prometheus not healthy endpoint"
+          fi
+
+          echo "Querying Prometheus for 'up' metric..."
+          METRICS_JSON=$(curl -sS "$PROMETHEUS_URL/api/v1/query?query=up" || true)
+          if echo "$METRICS_JSON" | grep -q '"status":"success"'; then
+            echo "[OK] Prometheus metrics collection verified"
+          else
+            echo "[WARN] Could not verify Prometheus metrics"
           fi
 
       - name: Check Grafana availability
         run: |
+          set -euo pipefail
           echo "Checking Grafana availability..."
+          GRAFANA_URL="http://localhost:3000/api/health"
           for i in {1..20}; do
-            if curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/health | grep -q "200"; then
-              echo "✅ Grafana is available"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$GRAFANA_URL" || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "[OK] Grafana is available (200)"
               break
             fi
-            echo "Waiting for Grafana... ($i/20)"
+            echo "Waiting for Grafana... ($i/20) status=$HTTP_CODE"
             sleep 2
           done
 
-      - name: Collect logs on failure
-        if: failure()
-        run: |
-          echo "=== Docker Compose Logs ===" 
-          docker-compose logs --tail=100
-          echo "=== Docker Compose Status ===" 
-          docker-compose ps
-          echo "=== Network Inspection ===" 
-          docker network inspect $(docker-compose ps -q | head -1 | xargs docker inspect --format='{{.HostConfig.NetworkMode}}') || true
-
-      - name: Cleanup docker-compose
+      - name: Save docker logs for potential upload
         if: always()
         run: |
-          echo "Cleaning up docker-compose services..."
-          docker-compose down -v
-          echo "Cleanup complete"
+          set -euo pipefail
+          mkdir -p test-logs
+          docker compose logs --no-color > test-logs/docker-compose.log || true
+          docker compose ps --no-trunc > test-logs/docker-compose-ps.log || true
+          docker images --no-trunc > test-logs/docker-images.log || true
+
+      - name: Upload logs artifact on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-logs
+          path: test-logs
+
+      - name: Cleanup docker compose
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "Cleaning up..."
+          docker compose down -v --remove-orphans || true

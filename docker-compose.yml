@@ -14,7 +14,6 @@ services:
       kafka:
         condition: service_healthy
     volumes:
-      - ./models:/home/fe/app/models
       - metrics_data:/home/fe/app/metrics
     environment:
       - REDIS_URL=redis://redis:6379
