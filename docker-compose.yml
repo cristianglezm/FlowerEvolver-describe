@@ -44,7 +44,7 @@ services:
       - internal
 
   kafka:
-    image: 'bitnami/kafka:3.7.1'
+    image: 'bitnami/kafka:3.7'
     hostname: kafka
     container_name: kafka
     ports:
