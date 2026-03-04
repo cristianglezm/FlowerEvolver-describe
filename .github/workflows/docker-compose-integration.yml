@@ -92,7 +92,7 @@ jobs:
 
           # 2. Check Internal Kafka
           echo "Checking Internal Kafka..."
-          docker compose exec -T kafka /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+          docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
 
           # 3. Check Internal Redis
           echo "Checking Internal Redis..."
