@@ -5,6 +5,7 @@ import structlog
 from fastapi import APIRouter, Body, File, UploadFile, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi_limiter.depends import RateLimiter
+from pyrate_limiter import Duration, Limiter, Rate
 
 from ..config import settings
 from ..services import captioning
@@ -14,8 +15,7 @@ from ..state import state
 logger = structlog.get_logger(__name__)
 
 limiter_dependency = RateLimiter(
-    times=settings.RATE_LIMIT_TIMES,
-    seconds=settings.RATE_LIMIT_SECONDS
+    limiter=Limiter(Rate(settings.RATE_LIMIT_TIMES, settings.RATE_LIMIT_SECONDS * Duration.SECOND))
 ) if settings.REDIS_ENABLED else in_memory_rate_limiter
 
 router = APIRouter(
