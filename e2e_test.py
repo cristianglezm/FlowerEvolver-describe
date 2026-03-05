@@ -1,10 +1,12 @@
-# e2e_test.py
 import requests
 import base64
 from pathlib import Path
 import numpy as np
 from PIL import Image
 import sys
+
+# Prevent pytest from collecting this file
+__test__ = False
 
 SERVICE_URL = "http://localhost:8000"
 
