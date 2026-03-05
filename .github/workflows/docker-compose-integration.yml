@@ -112,14 +112,14 @@ jobs:
             exit 1
           fi
 
-      - name: Run pytest
+      - name: Run E2E API tests
         run: |
           set -euo pipefail
-          echo "[OK] Running pytest..."
-          if python -m pytest -v --tb=short; then
-            echo "[OK] All pytest tests passed"
+          echo "[OK] Running E2E API tests..."
+          if python e2e_test.py; then
+            echo "[OK] E2E API tests passed"
           else
-            echo "[FAIL] Pytest tests failed"
+            echo "[FAIL] E2E API tests failed"
             exit 1
           fi
 
