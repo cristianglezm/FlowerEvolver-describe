@@ -7,7 +7,7 @@ numpy==2.2.6
 onnxruntime==1.24.3
 tiktoken==0.12.0
 aiokafka==0.13.0
-huggingface-hub==1.6.0
+huggingface-hub==1.7.1
 uvicorn==0.42.0
 gunicorn==25.1.0
 httptools==0.7.1
