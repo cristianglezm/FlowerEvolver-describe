@@ -12,7 +12,7 @@ uvicorn==0.46.0
 gunicorn==26.0.0
 httptools==0.7.1
 websockets==16.0
-watchfiles==1.1.1
+watchfiles==1.2.0
 pytest==9.0.3
 flake8==7.3.0
 autopep8==2.3.2
