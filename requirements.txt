@@ -10,7 +10,7 @@ aiokafka==0.14.0
 huggingface-hub==1.17.0
 uvicorn==0.48.0
 gunicorn==26.0.0
-httptools==0.7.1
+httptools==0.8.0
 websockets==16.0
 watchfiles==1.2.0
 pytest==9.0.3
