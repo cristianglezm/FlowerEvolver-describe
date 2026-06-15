@@ -16,7 +16,7 @@ watchfiles==1.2.0
 pytest==9.1.0
 flake8==7.3.0
 autopep8==2.3.2
-httpx==0.28.1
+httpx2==2.4.0
 pydantic-settings==2.14.1
 cachetools==7.1.4
 redis==8.0.0
