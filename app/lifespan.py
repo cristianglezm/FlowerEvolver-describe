@@ -7,11 +7,10 @@ import structlog
 from fastapi import FastAPI
 from aiokafka import AIOKafkaProducer
 from redis.asyncio import Redis
-from fastapi_limiter.depends import RateLimiter
-
 
 from .config import settings
 from .background.kafka_consumer import consume_kafka_requests
+from .dependencies import build_in_memory_rate_limiter, build_redis_rate_limiter
 from .state import state
 
 logger = structlog.get_logger(__name__)
@@ -53,14 +52,18 @@ async def _startup():
             logger.error("kafka_initialization_failed", error=str(e), exc_info=True)
 
     if settings.REDIS_ENABLED:
-        logger.info("redis_enabled_initializing_rate_limiter")
         try:
-            state.redis_client = Redis.from_url(settings.REDIS_URL, encoding="utf-8", decode_responses=True)
-            await RateLimiter.init(state.redis_client)
-            logger.info("fastapi_limiter_initialized_successfully")
+            state.redis_client = Redis.from_url(settings.REDIS_URL)
+            await state.redis_client.ping()
+            state.rate_limiter = await build_redis_rate_limiter(state.redis_client)
+            logger.info("redis_client_initialized_successfully")
         except Exception as e:
-            logger.error("fastapi_limiter_initialization_failed", error=str(e), exc_info=True)
+            logger.error("redis_client_initialization_failed", error=str(e), exc_info=True)
             state.redis_client = None
+            state.rate_limiter = build_in_memory_rate_limiter()
+            logger.warning("rate_limiter_falling_back_to_in_memory")
+    else:
+        state.rate_limiter = build_in_memory_rate_limiter()
 
 
 async def _shutdown():
