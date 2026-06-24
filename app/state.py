@@ -15,6 +15,7 @@ class AppState:
         self.kafka_producer: Optional[AIOKafkaProducer] = None
         self.kafka_consumer_task: Optional[asyncio.Task] = None
         self.redis_client: Optional[Redis] = None
+        self.rate_limiter: Optional[RateLimiter] = None
 
 
 state = AppState()
