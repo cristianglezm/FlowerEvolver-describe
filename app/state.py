@@ -4,6 +4,7 @@ import onnxruntime as ort
 import tiktoken
 from aiokafka import AIOKafkaProducer
 from redis.asyncio import Redis
+from pyrate_limiter import Limiter
 
 
 class AppState:
@@ -15,7 +16,7 @@ class AppState:
         self.kafka_producer: Optional[AIOKafkaProducer] = None
         self.kafka_consumer_task: Optional[asyncio.Task] = None
         self.redis_client: Optional[Redis] = None
-        self.rate_limiter: Optional[RateLimiter] = None
+        self.rate_limiter: Optional[Limiter] = None
 
 
 state = AppState()
