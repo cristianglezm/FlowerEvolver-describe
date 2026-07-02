@@ -3,7 +3,7 @@ structlog==26.1.0
 python-multipart==0.0.32
 python-dotenv==1.2.2
 Pillow==12.2.0
-numpy==2.2.6
+numpy==2.5.0
 onnxruntime==1.27.0
 tiktoken==0.13.0
 aiokafka==0.14.0
