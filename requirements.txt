@@ -2,7 +2,7 @@ fastapi[standard]==0.139.0
 structlog==26.1.0
 python-multipart==0.0.32
 python-dotenv==1.2.2
-Pillow==12.2.0
+Pillow==12.3.0
 numpy==2.2.6
 onnxruntime==1.27.0
 tiktoken==0.13.0
