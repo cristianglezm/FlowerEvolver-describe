@@ -8,7 +8,7 @@ onnxruntime==1.27.0
 tiktoken==0.13.0
 aiokafka==0.14.0
 huggingface-hub==1.23.0
-uvicorn==0.50.1
+uvicorn==0.51.0
 gunicorn==26.0.0
 httptools==0.8.0
 websockets==16.1
