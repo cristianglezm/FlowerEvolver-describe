@@ -17,7 +17,7 @@ pytest==9.1.1
 flake8==7.3.0
 autopep8==2.3.2
 httpx2==2.10.0
-pydantic-settings==2.14.2
+pydantic-settings==2.15.0
 redis==8.1.0
 pyrate-limiter==4.4.0
 prometheus-client==0.26.0
