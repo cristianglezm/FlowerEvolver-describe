@@ -9,7 +9,7 @@ tiktoken==0.13.0
 aiokafka==0.14.0
 huggingface-hub==1.28.0
 uvicorn==0.52.4
-gunicorn==26.0.0
+gunicorn==26.2.0
 httptools==0.8.0
 websockets==17.0.1
 watchfiles==1.2.0
