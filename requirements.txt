@@ -1,7 +1,7 @@
 fastapi[standard]==0.141.1
 structlog==26.1.0
 python-multipart==0.0.32
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 Pillow==12.3.0
 numpy==2.2.6
 onnxruntime==1.28.0
