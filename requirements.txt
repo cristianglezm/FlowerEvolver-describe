@@ -5,7 +5,7 @@ python-dotenv==1.2.3
 Pillow==12.3.0
 numpy==2.2.6
 onnxruntime==1.29.0
-tiktoken==0.13.0
+tiktoken==0.14.0
 aiokafka==0.14.0
 huggingface-hub==1.28.0
 uvicorn==0.52.4
