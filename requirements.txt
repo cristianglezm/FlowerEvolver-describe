@@ -1,4 +1,4 @@
-fastapi[standard]==0.141.1
+fastapi[standard]==0.142.2
 structlog==26.1.0
 python-multipart==0.0.32
 python-dotenv==1.2.4
