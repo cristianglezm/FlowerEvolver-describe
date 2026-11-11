@@ -27,4 +27,4 @@ COPY --chown=fe:fe docker/gunicorn_config.py .
 ENV VIRTUAL_ENV=/home/fe/app/.venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 EXPOSE 8000
-CMD ["gunicorn", "-c", "gunicorn_config.py", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "-c", "gunicorn_config.py", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:8000"]

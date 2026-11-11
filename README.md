@@ -143,6 +143,20 @@ This is the easiest way to run the service and all its monitoring and messaging 
     docker-compose down
     ```
 
+### Workers
+
+The image runs gunicorn with `NWORKERS` workers (default `4`, set in `docker/gunicorn_config.py`). Every worker loads
+its own copy of the ONNX models, about 800 MB of RAM each, so lower it on a small host:
+
+```bash
+NWORKERS=1 docker-compose up --build        # this compose file defaults to 1
+docker run -d -p 8000:8000 -e NWORKERS=1 --env-file .env fe-describe
+```
+
+It has to be a real environment variable (compose `environment:` or `docker run -e`): the `.env` file is only read by
+the app settings, not by gunicorn. Kafka requests are consumed by a single worker (one consumer group, and an
+auto-created topic has one partition), so more workers only add capacity for the REST endpoint.
+
 ### Manual Docker Build and Run
 
 If you only want to build and run the application container without its dependencies, you can use these commands:

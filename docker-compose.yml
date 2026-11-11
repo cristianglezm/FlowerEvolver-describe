@@ -18,6 +18,8 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      # every worker loads its own ONNX models (~800 MB), see "Workers" in the README
+      - NWORKERS=${NWORKERS:-1}
     networks:
       - internal
 
