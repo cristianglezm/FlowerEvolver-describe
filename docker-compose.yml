@@ -11,8 +11,8 @@ services:
     depends_on:
       redis:
         condition: service_started
-      kafka:
-        condition: service_healthy
+      kafka_init:
+        condition: service_completed_successfully
     volumes:
       - metrics_data:/home/fe/app/metrics
     environment:
@@ -80,6 +80,26 @@ services:
       retries: 5
       start_period: 30s
       timeout: 5s
+
+  # A partition is read by one consumer of a group and the workers are one group: on a topic with a single partition
+  # (what Kafka makes on its own) only one worker would get requests. One partition per worker.
+  kafka_init:
+    image: 'apache/kafka:3.7.1'
+    restart: "no"
+    environment:
+      NWORKERS: ${NWORKERS:-1}
+    networks:
+      - internal
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        kt=/opt/kafka/bin/kafka-topics.sh
+        $$kt --bootstrap-server kafka:9092 --create --if-not-exists --topic descRequests --partitions $$NWORKERS --replication-factor 1
+        $$kt --bootstrap-server kafka:9092 --alter --topic descRequests --partitions $$NWORKERS 2>/dev/null || true
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   kafka_exporter:
     image: "danielqsj/kafka-exporter:v1.9.0"

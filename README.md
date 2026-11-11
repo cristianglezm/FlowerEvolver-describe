@@ -154,8 +154,19 @@ docker run -d -p 8000:8000 -e NWORKERS=1 --env-file .env fe-describe
 ```
 
 It has to be a real environment variable (compose `environment:` or `docker run -e`): the `.env` file is only read by
-the app settings, not by gunicorn. Kafka requests are consumed by a single worker (one consumer group, and an
-auto-created topic has one partition), so more workers only add capacity for the REST endpoint.
+the app settings, not by gunicorn.
+
+The workers read the Kafka requests as one consumer group, and a partition is read by one consumer of a group. Kafka
+makes a topic with a single partition on its own, and then only one worker would ever get a request while the others
+hold their models for nothing. The `descRequests` topic needs at least `NWORKERS` partitions: the compose file of this
+repository makes it (`kafka_init`), and with another Kafka do the same:
+
+```bash
+kafka-topics.sh --bootstrap-server kafka:9092 --create --if-not-exists --topic descRequests --partitions 4 --replication-factor 1
+kafka-topics.sh --bootstrap-server kafka:9092 --alter --topic descRequests --partitions 4   # to add partitions (never fewer)
+```
+
+The REST endpoint is served by every worker regardless.
 
 ### Manual Docker Build and Run
 
